@@ -1,0 +1,2 @@
+--require node_modules/@xarc/module-dev/config/test/setup.js
+--recursive

@@ -1,0 +1,53 @@
+{
+  "name": "run-verify",
+  "version": "0.1.0",
+  "description": "Proper test verifications",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "clap check"
+  },
+  "keywords": [
+    "proper",
+    "async",
+    "promise",
+    "callback",
+    "event",
+    "test",
+    "expect",
+    "verify",
+    "verification"
+  ],
+  "author": "Joel Chen",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jchip/run-verify.git"
+  },
+  "files": [
+    "lib"
+  ],
+  "devDependencies": {
+    "@xarc/module-dev": "^1.0.0"
+  },
+  "nyc": {
+    "all": true,
+    "reporter": [
+      "lcov",
+      "text",
+      "text-summary"
+    ],
+    "exclude": [
+      "coverage",
+      "*clap.js",
+      "gulpfile.js",
+      "dist",
+      "test"
+    ],
+    "check-coverage": true,
+    "statements": 100,
+    "branches": 100,
+    "functions": 100,
+    "lines": 100,
+    "cache": true
+  }
+}
