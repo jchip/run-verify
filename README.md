@@ -8,12 +8,12 @@ $ npm install --save-dev run-verify
 
 # Table of Content
 
-- [Basic](#basic)
+- [`expect` Test Verifications](#expect-test-verifications)
   - [Verifying Events and `callbacks` without Promise](#verifying-events-and-callbacks-without-promise)
   - [Verifying with Promisification](#verifying-with-promisification)
   - [Verifying with run-verify](#verifying-with-run-verify)
-    - [`runVerify`](#runverify)
-    - [`asyncVerify`](#asyncverify)
+    - [Using `runVerify` with `done`](#using-runverify-with-done)
+    - [Using Promisified `asyncVerify`](#using-promisified-asyncverify)
   - [Verifying Expected Failures](#verifying-expected-failures)
     - [Verifying Failures with callbacks](#verifying-failures-with-callbacks)
     - [Verifying Failures with Promise](#verifying-failures-with-promise)
@@ -23,16 +23,16 @@ $ npm install --save-dev run-verify
   - [1 Parameter](#1-parameter)
   - [2 Parameters](#2-parameters)
 - [APIs](#apis)
-  - [`runVerify`](#runverify-1)
-  - [`asyncVerify`](#asyncverify-1)
+  - [`runVerify`](#runverify)
+  - [`asyncVerify`](#asyncverify)
+  - [`wrapCheck`](#wrapcheck)
   - [`expectError`](#expecterror)
   - [`withCallback`](#withcallback)
-  - [`wrapCheck`](#wrapcheck)
   - [`wrapVerify`](#wrapverify)
   - [`wrapAsyncVerify`](#wrapasyncverify)
 - [License](#license)
 
-## Basic
+# `expect` Test Verifications
 
 ### Verifying Events and `callbacks` without Promise
 
@@ -98,8 +98,6 @@ const promisifiedFooEvent() => new Promise(resolve => foo.on("event", resolve));
 So the verification is now like this:
 
 ```js
-const promisifiedFooEvent() => new Promise(resolve => foo.on("event", resolve));
-
 it("should emit an event", (done) => {
   return promisifiedFooEvent().then(data => {
     expect(data).to.equal("expected value");
@@ -130,7 +128,7 @@ it("should emit an event", async () => {
 
 But if you prefer not to wrap with promisification or facing a complex scenario, **run-verify** always allows you to write test verification nicely:
 
-#### `runVerify`
+#### Using `runVerify` with `done`
 
 Using `runVerify` if you are using the `done` callback from the test runner:
 
@@ -146,7 +144,7 @@ it("should emit an event", done => {
 });
 ```
 
-#### `asyncVerify`
+#### Using Promisified `asyncVerify`
 
 Using `asyncVerify` if you are returning a Promise to the test runner:
 
@@ -163,7 +161,7 @@ it("should emit an event", () => {
 
 ## Verifying Expected Failures
 
-When you need to verify that a function actually throws error, you can do:
+When you need to verify that a function actually throws an error, you can do:
 
 ```js
 it("should throw", () => {
@@ -171,9 +169,9 @@ it("should throw", () => {
 });
 ```
 
-However, this gets a bit trickier for async functions which can invoke callback or reject with error.
+However, this gets a bit trickier for async functions which can invoke callback or reject with an error.
 
-See below for some common patterns on how to verify async functions return errors and how run-verify helps.
+See below for some common patterns on how to verify async functions return errors and how **run-verify** helps.
 
 ### Verifying Failures with callbacks
 
@@ -194,7 +192,7 @@ it("should invoke callback with error", done => {
 
 ### Verifying Failures with Promise
 
-For promise it is tricky, but the pattern I commonly use is:
+For promise it is tricky, but the pattern I commonly use is to have a `.catch` that saves the expect error and then verify it in a `.then`:
 
 ```js
 it("should reject", () => {
@@ -210,7 +208,7 @@ it("should reject", () => {
 });
 ```
 
-Or nicely using `try/catch` with `async/await`:
+With `async/await`, it can be done very nicely using `try/catch`:
 
 ```js
 it("should reject", async () => {
@@ -225,9 +223,9 @@ it("should reject", async () => {
 
 ### Verifying Failures with `run-verify`
 
-`run-verify` has an `expectError` decorator to mark a verification function:
+`run-verify` has an [`expectError`](#expecterror) decorator to mark a `checkFunc` is expecting to return or throw an error:
 
-If you take a `done` callback from the test runner:
+Example that uses a `done` callback from the test runner:
 
 ```js
 const { expectError, runVerify } = require("run-verify");
@@ -235,38 +233,37 @@ const { expectError, runVerify } = require("run-verify");
 it("should invoke callback with error", done => {
   runVerify(
     expectError(next => foo("bad input", next)),
-    err => {
-      expect(err.message).includes("bad input passed");
-    },
+    err => expect(err.message).includes("bad input passed"),
     done
   );
 });
 ```
 
-If you are returning a Promise to the test runner:
+Example that returns a Promise to the test runner:
 
 ```js
 const { expectError, asyncVerify } = require("run-verify");
 
 it("should invoke callback with error", () => {
-  return asyncVerify(expectError(next => foo("bad input", next)), err => {
-    expect(err.message).includes("bad input passed");
-  });
+  return asyncVerify(
+    expectError(next => foo("bad input", next)),
+    err => expect(err.message).includes("bad input passed")
+  );
 });
 ```
 
-When everything is promisified:
+Example when everything is promisified:
 
 ```js
 const { expectError, asyncVerify } = require("run-verify");
 
 it("should invoke callback with error", () => {
-  return asyncVerify(expectError(() => promisifiedFoo("bad input")), err => {
-    expect(err.message).includes("bad input passed");
-  });
+  return asyncVerify(
+    expectError(() => promisifiedFoo("bad input")),
+    err => expect(err.message).includes("bad input passed")
+  );
 });
 ```
-
 
 # `checkFunc`
 
@@ -280,9 +277,9 @@ Each `checkFunc` can take 0, 1, or 2 parameters.
 () => {}
 ```
 
-- Treated and invoked as a sync function, but
-- Return a Promise if it wants to be async.
-  - The Promise's resolved value is passed to next `checkFunc` as result.
+- Assume to be a sync function
+- But if it's intended to be async, then it should return a Promise
+  - The Promise's resolved value is passed to next `checkFunc`.
 
 ### 1 Parameter
 
@@ -299,8 +296,8 @@ With only 1 parameter, it gets ambiguous whether it wants a `next` callback or a
      - `next`, `cb`, `callback`, or `done`
      - The name check is case insensitive
   - The function is decorated with the [withCallback](#withcallback) decorator
-- Otherwise it's expect to want the result from previous `checkFunc`
-  - And the `checkFunc`'s behavior is treated the same as the [0 parameter checkFunc](#0-parameter)
+- Otherwise it's expected to take the result from previous `checkFunc`
+  - And its behavior is treated the same as the [0 parameter checkFunc](#0-parameter)
 - A native `AsyncFunction` is always expected to take the result and returns a Promise.
 
 ie:
@@ -315,6 +312,8 @@ async (result) => {}
 (result, next) => {}
 ```
 
+This is always treated as an async function taking the `result` and a `next` callback:
+
 - `result` - result from previous `checkFunc`
 - `next` - callback to invoke the next `checkFunc`
 
@@ -326,14 +325,14 @@ async (result) => {}
 runVerify(...checkFuncs, done)
 ```
 
-The main verification function, params:
+The main API, params:
 
 | name         | description                                                         |
 | ------------ | ------------------------------------------------------------------- |
 | `checkFuncs` | variadic list of functions to invoke to run tests and verifications |
 | `done`       | `done(err, result)` callback after verification is done or failed   |
 
-- Details about [checkFunc](#checkfunc) above.
+- See details about [checkFunc](#checkfunc).
 
 Each `checkFunc` is invoked serially, with the result from one passed to the next, depending on its parameters.
 
@@ -346,22 +345,6 @@ asyncVerify(...checkFuncs)
 ```
 
 The promisified version of [runVerify](#runverify).  Returns a Promise.
-
-## `expectError`
-
-```js
-expectError(checkFunc)
-```
-
-Decorate a `checkFunc` to be expected to throw or return `Error`.  Its error will be passed to the next `checkFunc`.
-
-## `withCallback`
-
-```js
-withCallback(checkFunc)
-```
-
-Decorate a `checkFunc` that takes a single parameter wants a `next` callback for that parameter.
 
 ## `wrapCheck`
 
@@ -380,13 +363,53 @@ runVerify(
 )
 ```
 
+## `expectError`
+
+```js
+expectError(checkFunc)
+```
+
+Shortcut for:
+
+```js
+wrapCheck(checkFunc).expectError
+```
+
+Decorate a `checkFunc` to be expected to throw or return `Error`.  Its error will be passed to the next `checkFunc`.
+
+This uses [wrapCheck](#wrapcheck) internally so [withCallback](#withcallback) is also available after:
+
+```js
+expectError(() => {}).withCallback
+```
+
+## `withCallback`
+
+```js
+withCallback(checkFunc)
+```
+
+Shortcut for:
+
+```js
+wrapCheck(checkFunc).withCallback
+```
+
+Decorate a `checkFunc` that takes a single parameter to expect a `next` callback for that parameter.
+
+This uses [wrapCheck](#wrapcheck) internally so [expectError](#expecterror) is also available after:
+
+```js
+withCallback(() => {}).expectError
+```
+
 ## `wrapVerify`
 
 ```js
 wrapVerify(...checkFuncs, done)
 ```
 
-Returns a function that wraps `runVerify` and takes a single parameter, which is passed to the first `checkFunc` as result.
+Returns a function that wraps [`runVerify`](#runverify) and takes a single parameter, which is passed to the first `checkFunc` as result.
 
 ## `wrapAsyncVerify`
 
@@ -394,7 +417,7 @@ Returns a function that wraps `runVerify` and takes a single parameter, which is
 wrapAsyncVerify(...checkFuncs)
 ```
 
-The promisified version of `wrapVerify`
+The promisified version of [`wrapVerify`](#wrapverify)
 
 # License
 
