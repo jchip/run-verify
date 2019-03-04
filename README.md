@@ -27,10 +27,13 @@ $ npm install --save-dev run-verify
   - [`asyncVerify`](#asyncverify)
   - [`wrapCheck`](#wrapcheck)
   - [`expectError`](#expecterror)
+  - [`expectErrorHas`](#expecterrorhas)
+  - [`expectErrorToBe`](#expecterrortobe)
   - [`withCallback`](#withcallback)
   - [`wrapVerify`](#wrapverify)
   - [`wrapAsyncVerify`](#wrapasyncverify)
 - [License](#license)
+
 
 # `expect` Test Verifications
 
@@ -223,7 +226,7 @@ it("should reject", async () => {
 
 ### Verifying Failures with `run-verify`
 
-`run-verify` has an [`expectError`](#expecterror) decorator to mark a `checkFunc` is expecting to return or throw an error:
+`run-verify` has an [`expectError`](#expecterror) decorator to mark a [`checkFunc`](#checkfunc) is expecting to return or throw an error:
 
 Example that uses a `done` callback from the test runner:
 
@@ -267,9 +270,9 @@ it("should invoke callback with error", () => {
 
 # `checkFunc`
 
-`runVerify` takes a list of functions as `checkFunc` to be invoked serially to run the test verification.
+`runVerify` takes a list of functions as [`checkFunc`](#checkfunc) to be invoked serially to run the test verification.
 
-Each `checkFunc` can take 0, 1, or 2 parameters.
+Each [`checkFunc`](#checkfunc) can take 0, 1, or 2 parameters.
 
 ### 0 Parameter
 
@@ -279,7 +282,7 @@ Each `checkFunc` can take 0, 1, or 2 parameters.
 
 - Assume to be a sync function
 - But if it's intended to be async, then it should return a Promise
-  - The Promise's resolved value is passed to next `checkFunc`.
+  - The Promise's resolved value is passed to next [`checkFunc`](#checkfunc).
 
 ### 1 Parameter
 
@@ -289,14 +292,14 @@ Each `checkFunc` can take 0, 1, or 2 parameters.
 
 With only 1 parameter, it gets ambiguous whether it wants a `next` callback or a sync/Promise function taking a result.
 
-`runVerify` does the following to disambiguate the `checkFunc`'s single parameter:
+`runVerify` does the following to disambiguate the [`checkFunc`](#checkfunc)'s single parameter:
 
 - It's expected to be the `next` callback if:
   -  the parameter name starts with one of the following:
      - `next`, `cb`, `callback`, or `done`
      - The name check is case insensitive
   - The function is decorated with the [withCallback](#withcallback) decorator
-- Otherwise it's expected to take the result from previous `checkFunc`
+- Otherwise it's expected to take the result from previous [`checkFunc`](#checkfunc)
   - And its behavior is treated the same as the [0 parameter checkFunc](#0-parameter)
 - A native `AsyncFunction` is always expected to take the result and returns a Promise.
 
@@ -314,8 +317,8 @@ async (result) => {}
 
 This is always treated as an async function taking the `result` and a `next` callback:
 
-- `result` - result from previous `checkFunc`
-- `next` - callback to invoke the next `checkFunc`
+- `result` - result from previous [`checkFunc`](#checkfunc)
+- `next` - callback to invoke the next [`checkFunc`](#checkfunc)
 
 # APIs
 
@@ -334,9 +337,9 @@ The main API, params:
 
 - See details about [checkFunc](#checkfunc).
 
-Each `checkFunc` is invoked serially, with the result from one passed to the next, depending on its parameters.
+Each [`checkFunc`](#checkfunc) is invoked serially, with the result from one passed to the next, depending on its parameters.
 
-`done` is invoked at the end, but if any `checkFunc` fails, then `done` is invoked immediately with the error.
+`done` is invoked at the end, but if any [`checkFunc`](#checkfunc) fails, then `done` is invoked immediately with the error.
 
 ## `asyncVerify`
 
@@ -352,7 +355,7 @@ The promisified version of [runVerify](#runverify).  Returns a Promise.
 wrapCheck(checkFunc)
 ```
 
-Wrap a `checkFunc` with the `expectError` and `withCallback` decorators.
+Wrap a [`checkFunc`](#checkfunc) with the `expectError` and `withCallback` decorators.
 
 For example:
 
@@ -375,13 +378,41 @@ Shortcut for:
 wrapCheck(checkFunc).expectError
 ```
 
-Decorate a `checkFunc` to be expected to throw or return `Error`.  Its error will be passed to the next `checkFunc`.
+Decorate a [`checkFunc`](#checkfunc) expecting to throw or return `Error`.  Its error will be passed to the next [`checkFunc`](#checkfunc).
 
 This uses [wrapCheck](#wrapcheck) internally so [withCallback](#withcallback) is also available after:
 
 ```js
 expectError(() => {}).withCallback
 ```
+
+## `expectErrorHas`
+
+```js
+expectErrorHas(checkFunc, msg)
+```
+
+Shortcut for:
+
+```js
+wrapCheck(checkFunc).expectErrorHas(msg)
+```
+
+Decorate a [`checkFunc`](#checkfunc) expecting to throw or return `Error` with message containing `msg`.  Its error will be passed to the next [`checkFunc`](#checkfunc).
+
+## `expectErrorToBe`
+
+```js
+expectErrorToBe(checkFunc, msg)
+```
+
+Shortcut for:
+
+```js
+wrapCheck(checkFunc).expectErrorToBe(msg)
+```
+
+Decorate a [`checkFunc`](#checkfunc) expecting to throw or return `Error` with message to be `msg`.  Its error will be passed to the next `checkFunc`.
 
 ## `withCallback`
 
@@ -395,7 +426,7 @@ Shortcut for:
 wrapCheck(checkFunc).withCallback
 ```
 
-Decorate a `checkFunc` that takes a single parameter to expect a `next` callback for that parameter.
+Decorate a [`checkFunc`](#checkfunc) that takes a single parameter to expect a `next` callback for that parameter.
 
 This uses [wrapCheck](#wrapcheck) internally so [expectError](#expecterror) is also available after:
 

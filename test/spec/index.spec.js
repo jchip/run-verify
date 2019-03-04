@@ -6,6 +6,8 @@ const {
   asyncVerify,
   wrapAsyncVerify,
   expectError,
+  expectErrorHas,
+  expectErrorToBe,
   withCallback,
   wrapCheck
 } = require("../..");
@@ -49,6 +51,42 @@ describe("runVerify", function() {
       err => {
         expect(err.message).includes("foo failed");
       },
+      done
+    );
+  });
+
+  it("should verify async event error _has_ msg and pass to next check func", done => {
+    runVerify(
+      expectErrorHas(next => {
+        fooErrorEvent(1, next);
+      }, "oo failed"),
+      done
+    );
+  });
+
+  it("should verify async event error _equal_ msg and pass to next check func", done => {
+    runVerify(
+      expectErrorToBe(next => {
+        fooErrorEvent(1, next);
+      }, "foo failed"),
+      done
+    );
+  });
+
+  it("should fail async event error _not has_ msg", done => {
+    runVerify(
+      expectErrorHas(next => {
+        runVerify(expectErrorHas(next2 => fooErrorEvent(1, next2), "blahblah"), next);
+      }, "with message has 'blahblah'"),
+      done
+    );
+  });
+
+  it("should fail async event error _not equal_ msg", done => {
+    runVerify(
+      expectErrorHas(next => {
+        runVerify(expectErrorToBe(next2 => fooErrorEvent(1, next2), "blahblah"), next);
+      }, "with message to be 'blahblah'"),
       done
     );
   });
