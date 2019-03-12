@@ -9,7 +9,8 @@ const {
   expectErrorHas,
   expectErrorToBe,
   withCallback,
-  wrapCheck
+  wrapCheck,
+  runFinally
 } = require("../..");
 
 const fooEvent = (delay, cb) => setTimeout(() => cb(null, "foo"), delay);
@@ -281,6 +282,107 @@ describe("runVerify", function() {
       done
     );
   });
+
+  it("should catch errors from sync finally checkFunc", done => {
+    let f1;
+    let f2;
+    runVerify(
+      runFinally(() => {
+        return Promise.reject(new Error("test"));
+      }),
+      runFinally(() => {
+        f1 = true;
+        throw new Error("test 1");
+      }),
+      () => "hello",
+      runFinally(() => (f2 = true)),
+      r => {
+        expect(r).to.equal("hello");
+        return r;
+      },
+      err => {
+        try {
+          expect(f1).equal(true);
+          expect(f2).equal(undefined);
+          expect(err).to.exist;
+          expect(err.message).to.equal("test 1");
+          done();
+        } catch (err2) {
+          done(err2);
+        }
+      }
+    );
+  });
+
+  it("should catch errors from async finally checkFunc", done => {
+    let f1;
+    let f2;
+    runVerify(
+      runFinally(() => (f1 = true)),
+      () => "hello",
+      runFinally(() => {
+        return Promise.reject(new Error("test"));
+      }),
+      r => {
+        expect(r).to.equal("hello");
+        return r;
+      },
+      runFinally(() => {
+        f2 = true;
+      }),
+      err => {
+        try {
+          expect(f1).equal(true);
+          expect(f2).equal(true);
+          expect(err).to.exist;
+          done();
+        } catch (err2) {
+          done(err2);
+        }
+      }
+    );
+  });
+});
+
+describe("runFinally", function() {
+  it("should make a callback that's always run", () => {
+    const x = runFinally(() => {});
+    expect(x._isFinally).equal(true);
+  });
+
+  it("should make callbacks that's invoked regardless of test result", done => {
+    let f1;
+    let f2;
+    let f3;
+    let t4;
+    runVerify(
+      runFinally(() => (f1 = true)),
+      () => "hello",
+      runFinally(() => (f2 = true)),
+      r => {
+        expect(r).to.equal("hello");
+        return r;
+      },
+      () => {
+        throw new Error("oops");
+      },
+      runFinally(() => (f3 = true)),
+      () => (t4 = true),
+      err => {
+        try {
+          expect(err).to.exist;
+          expect(err.message).equal("oops");
+          expect(f1).equal(true);
+          expect(f2).equal(true);
+          expect(f3).equal(true);
+          expect(t4).equal(undefined);
+          done();
+        } catch (err2) {
+          done(err2);
+        }
+      }
+    );
+  });
 });
 
 describe("wrapVerify", function() {
@@ -311,6 +413,32 @@ describe("asyncVerify", function() {
         );
       })
     );
+  });
+
+  it("should catch errors from async finally checkFun", () => {
+    let f1;
+    let f2;
+    let error;
+    return asyncVerify(
+      runFinally(() => (f1 = true)),
+      () => "hello",
+      runFinally(() => {
+        return Promise.reject(new Error("test"));
+      }),
+      r => {
+        expect(r).to.equal("hello");
+        return r;
+      },
+      runFinally(() => {
+        f2 = true;
+      })
+    )
+      .catch(err => (error = err))
+      .then(() => {
+        expect(error).to.exist;
+        expect(f1).equal(true);
+        expect(f2).equal(true);
+      });
   });
 });
 

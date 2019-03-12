@@ -25,6 +25,7 @@ $ npm install --save-dev run-verify
 - [APIs](#apis)
   - [`runVerify`](#runverify)
   - [`asyncVerify`](#asyncverify)
+  - [`runFinally`](#runfinally)
   - [`wrapCheck`](#wrapcheck)
   - [`expectError`](#expecterror)
   - [`expectErrorHas`](#expecterrorhas)
@@ -348,6 +349,37 @@ asyncVerify(...checkFuncs)
 ```
 
 The promisified version of [runVerify](#runverify).  Returns a Promise.
+
+> Make sure no `done` callback is passed as the last parameter.
+
+## `runFinally`
+
+```js
+runFinally(finallyFunc)
+```
+
+Create a callback that's always called.
+
+- The `finally` callback can return a Promise.
+- If any of them throws or rejects, then `done` is called with the error.
+- They can appear in any order and there can be multiple of them.
+
+ie:
+
+```js
+runVerify(
+  runFinally(() => {}),
+  () => {
+    // test code
+    return "foo";
+  },
+  runFinally(() => return promiseCleanup()),
+  result => {
+    // expect result === "foo
+  },
+  done
+)
+```
 
 ## `wrapCheck`
 
