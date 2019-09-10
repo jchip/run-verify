@@ -8,10 +8,13 @@ const {
   expectError,
   expectErrorHas,
   expectErrorToBe,
+  onFailVerify,
   withCallback,
   wrapCheck,
   runFinally
 } = require("../..");
+
+const { IS_FINALLY } = require("../../lib/symbols");
 
 const fooEvent = (delay, cb) => setTimeout(() => cb(null, "foo"), delay);
 const fooErrorEvent = (delay, cb) => setTimeout(() => cb(new Error("foo failed")), delay);
@@ -347,7 +350,7 @@ describe("runVerify", function() {
 describe("runFinally", function() {
   it("should make a callback that's always run", () => {
     const x = runFinally(() => {});
-    expect(x._isFinally).equal(true);
+    expect(x[IS_FINALLY]).equal(true);
   });
 
   it("should make callbacks that's invoked regardless of test result", done => {
@@ -439,6 +442,69 @@ describe("asyncVerify", function() {
         expect(f1).equal(true);
         expect(f2).equal(true);
       });
+  });
+
+  it("should invoke onFailVerify callback", () => {
+    let catchError;
+    const oops = "oops - test failure";
+    const test1 = () =>
+      asyncVerify(
+        () => {
+          throw new Error(oops);
+        },
+        onFailVerify(err => {
+          catchError = err;
+        }),
+        () => {
+          throw new Error("bad - not expecting this to be called");
+        }
+      );
+
+    return asyncVerify(expectErrorToBe(test1, oops), () => {
+      expect(catchError.message).equals(oops);
+    });
+  });
+
+  it("should use exception from onFailVerify callback as new error", () => {
+    let catchError;
+    const oops = "oops - test failure";
+    const test1 = () =>
+      asyncVerify(
+        () => {
+          throw new Error("first oops");
+        },
+        onFailVerify(err => {
+          catchError = err;
+          throw new Error(oops);
+        }),
+        () => {
+          throw new Error("bad - not expecting this to be called");
+        }
+      );
+
+    return asyncVerify(expectErrorToBe(test1, oops), err => {
+      expect(err.message).equals(oops);
+      expect(catchError.message).equals("first oops");
+    });
+  });
+
+  it("should skip onFailVerify callback", () => {
+    let catchError;
+    let count = 0;
+    const test1 = () =>
+      asyncVerify(
+        () => count++,
+        onFailVerify(err => {
+          catchError = err;
+          count++;
+        }),
+        () => count++
+      );
+
+    return asyncVerify(test1, () => {
+      expect(count, "should go through all checks and skip onFailVerify").equal(2);
+      expect(catchError).to.be.undefined;
+    });
   });
 });
 

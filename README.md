@@ -6,7 +6,7 @@ Proper test verifications
 $ npm install --save-dev run-verify
 ```
 
-# Table of Content
+## Table of Content
 
 - [`expect` Test Verifications](#expect-test-verifications)
   - [Verifying Events and `callbacks` without Promise](#verifying-events-and-callbacks-without-promise)
@@ -14,15 +14,16 @@ $ npm install --save-dev run-verify
   - [Verifying with run-verify](#verifying-with-run-verify)
     - [Using `runVerify` with `done`](#using-runverify-with-done)
     - [Using Promisified `asyncVerify`](#using-promisified-asyncverify)
-  - [Verifying Expected Failures](#verifying-expected-failures)
-    - [Verifying Failures with callbacks](#verifying-failures-with-callbacks)
-    - [Verifying Failures with Promise](#verifying-failures-with-promise)
-    - [Verifying Failures with `run-verify`](#verifying-failures-with-run-verify)
-- [`checkFunc`](#checkfunc)
+- [Verifying Expected Failures](#verifying-expected-failures)
+  - [Verifying Failures with callbacks](#verifying-failures-with-callbacks)
+  - [Verifying Failures with Promise](#verifying-failures-with-promise)
+  - [Verifying Failures with `run-verify`](#verifying-failures-with-run-verify)
+
+* [`checkFunc`](#checkfunc)
   - [0 Parameter](#0-parameter)
   - [1 Parameter](#1-parameter)
   - [2 Parameters](#2-parameters)
-- [APIs](#apis)
+* [APIs](#apis)
   - [`runVerify`](#runverify)
   - [`asyncVerify`](#asyncverify)
   - [`runFinally`](#runfinally)
@@ -31,12 +32,12 @@ $ npm install --save-dev run-verify
   - [`expectErrorHas`](#expecterrorhas)
   - [`expectErrorToBe`](#expecterrortobe)
   - [`withCallback`](#withcallback)
+  - [`onFailVerify`](#onfailverify)
   - [`wrapVerify`](#wrapverify)
   - [`wrapAsyncVerify`](#wrapasyncverify)
-- [License](#license)
+* [License](#license)
 
-
-# `expect` Test Verifications
+## `expect` Test Verifications
 
 ### Verifying Events and `callbacks` without Promise
 
@@ -102,10 +103,13 @@ const promisifiedFooEvent() => new Promise(resolve => foo.on("event", resolve));
 So the verification is now like this:
 
 ```js
-it("should emit an event", (done) => {
-  return promisifiedFooEvent().then(data => {
-    expect(data).to.equal("expected value");
-  }).then(done).catch(done);
+it("should emit an event", done => {
+  return promisifiedFooEvent()
+    .then(data => {
+      expect(data).to.equal("expected value");
+    })
+    .then(done)
+    .catch(done);
 });
 ```
 
@@ -140,11 +144,7 @@ Using `runVerify` if you are using the `done` callback from the test runner:
 const { runVerify } = require("run-verify");
 
 it("should emit an event", done => {
-  runVerify(
-    next => foo.on("event", next),
-    data => expect(data).to.equal("expected value"),
-    done
-  );
+  runVerify(next => foo.on("event", next), data => expect(data).to.equal("expected value"), done);
 });
 ```
 
@@ -249,9 +249,8 @@ Example that returns a Promise to the test runner:
 const { expectError, asyncVerify } = require("run-verify");
 
 it("should invoke callback with error", () => {
-  return asyncVerify(
-    expectError(next => foo("bad input", next)),
-    err => expect(err.message).includes("bad input passed")
+  return asyncVerify(expectError(next => foo("bad input", next)), err =>
+    expect(err.message).includes("bad input passed")
   );
 });
 ```
@@ -262,9 +261,8 @@ Example when everything is promisified:
 const { expectError, asyncVerify } = require("run-verify");
 
 it("should invoke callback with error", () => {
-  return asyncVerify(
-    expectError(() => promisifiedFoo("bad input")),
-    err => expect(err.message).includes("bad input passed")
+  return asyncVerify(expectError(() => promisifiedFoo("bad input")), err =>
+    expect(err.message).includes("bad input passed")
   );
 });
 ```
@@ -278,7 +276,7 @@ Each [`checkFunc`](#checkfunc) can take 0, 1, or 2 parameters.
 ### 0 Parameter
 
 ```js
-() => {}
+() => {};
 ```
 
 - Assume to be a sync function
@@ -296,9 +294,9 @@ With only 1 parameter, it gets ambiguous whether it wants a `next` callback or a
 `runVerify` does the following to disambiguate the [`checkFunc`](#checkfunc)'s single parameter:
 
 - It's expected to be the `next` callback if:
-  -  the parameter name starts with one of the following:
-     - `next`, `cb`, `callback`, or `done`
-     - The name check is case insensitive
+  - the parameter name starts with one of the following:
+    - `next`, `cb`, `callback`, or `done`
+    - The name check is case insensitive
   - The function is decorated with the [withCallback](#withcallback) decorator
 - Otherwise it's expected to take the result from previous [`checkFunc`](#checkfunc)
   - And its behavior is treated the same as the [0 parameter checkFunc](#0-parameter)
@@ -307,13 +305,13 @@ With only 1 parameter, it gets ambiguous whether it wants a `next` callback or a
 ie:
 
 ```js
-async (result) => {}
+async result => {};
 ```
 
 ### 2 Parameters
 
 ```js
-(result, next) => {}
+(result, next) => {};
 ```
 
 This is always treated as an async function taking the `result` and a `next` callback:
@@ -326,7 +324,7 @@ This is always treated as an async function taking the `result` and a `next` cal
 ## `runVerify`
 
 ```js
-runVerify(...checkFuncs, done)
+runVerify(...checkFuncs, done);
 ```
 
 The main API, params:
@@ -345,17 +343,17 @@ Each [`checkFunc`](#checkfunc) is invoked serially, with the result from one pas
 ## `asyncVerify`
 
 ```js
-asyncVerify(...checkFuncs)
+asyncVerify(...checkFuncs);
 ```
 
-The promisified version of [runVerify](#runverify).  Returns a Promise.
+The promisified version of [runVerify](#runverify). Returns a Promise.
 
 > Make sure no `done` callback is passed as the last parameter.
 
 ## `runFinally`
 
 ```js
-runFinally(finallyFunc)
+runFinally(finallyFunc);
 ```
 
 Create a callback that's always called.
@@ -384,7 +382,7 @@ runVerify(
 ## `wrapCheck`
 
 ```js
-wrapCheck(checkFunc)
+wrapCheck(checkFunc);
 ```
 
 Wrap a [`checkFunc`](#checkfunc) with the `expectError` and `withCallback` decorators.
@@ -392,70 +390,67 @@ Wrap a [`checkFunc`](#checkfunc) with the `expectError` and `withCallback` decor
 For example:
 
 ```js
-runVerify(
-  wrapCheck((next) => foo("bad input", next)).expectError.withCallback,
-  done
-)
+runVerify(wrapCheck(next => foo("bad input", next)).expectError.withCallback, done);
 ```
 
 ## `expectError`
 
 ```js
-expectError(checkFunc)
+expectError(checkFunc);
 ```
 
 Shortcut for:
 
 ```js
-wrapCheck(checkFunc).expectError
+wrapCheck(checkFunc).expectError;
 ```
 
-Decorate a [`checkFunc`](#checkfunc) expecting to throw or return `Error`.  Its error will be passed to the next [`checkFunc`](#checkfunc).
+Decorate a [`checkFunc`](#checkfunc) expecting to throw or return `Error`. Its error will be passed to the next [`checkFunc`](#checkfunc).
 
 This uses [wrapCheck](#wrapcheck) internally so [withCallback](#withcallback) is also available after:
 
 ```js
-expectError(() => {}).withCallback
+expectError(() => {}).withCallback;
 ```
 
 ## `expectErrorHas`
 
 ```js
-expectErrorHas(checkFunc, msg)
+expectErrorHas(checkFunc, msg);
 ```
 
 Shortcut for:
 
 ```js
-wrapCheck(checkFunc).expectErrorHas(msg)
+wrapCheck(checkFunc).expectErrorHas(msg);
 ```
 
-Decorate a [`checkFunc`](#checkfunc) expecting to throw or return `Error` with message containing `msg`.  Its error will be passed to the next [`checkFunc`](#checkfunc).
+Decorate a [`checkFunc`](#checkfunc) expecting to throw or return `Error` with message containing `msg`. Its error will be passed to the next [`checkFunc`](#checkfunc).
 
 ## `expectErrorToBe`
 
 ```js
-expectErrorToBe(checkFunc, msg)
+expectErrorToBe(checkFunc, msg);
 ```
 
 Shortcut for:
 
 ```js
-wrapCheck(checkFunc).expectErrorToBe(msg)
+wrapCheck(checkFunc).expectErrorToBe(msg);
 ```
 
-Decorate a [`checkFunc`](#checkfunc) expecting to throw or return `Error` with message to be `msg`.  Its error will be passed to the next `checkFunc`.
+Decorate a [`checkFunc`](#checkfunc) expecting to throw or return `Error` with message to be `msg`. Its error will be passed to the next `checkFunc`.
 
 ## `withCallback`
 
 ```js
-withCallback(checkFunc)
+withCallback(checkFunc);
 ```
 
 Shortcut for:
 
 ```js
-wrapCheck(checkFunc).withCallback
+wrapCheck(checkFunc).withCallback;
 ```
 
 Decorate a [`checkFunc`](#checkfunc) that takes a single parameter to expect a `next` callback for that parameter.
@@ -463,13 +458,45 @@ Decorate a [`checkFunc`](#checkfunc) that takes a single parameter to expect a `
 This uses [wrapCheck](#wrapcheck) internally so [expectError](#expecterror) is also available after:
 
 ```js
-withCallback(() => {}).expectError
+withCallback(() => {}).expectError;
+```
+
+## `onFailVerify`
+
+```js
+onFailVerify(checkFunc);
+```
+
+Shortcut for:
+
+```js
+wrapCheck(checkFunc).onFailVerify;
+```
+
+Decorate a [`checkFunc`](#checkfunc) that will be called with `err` if the `checkFunc` right before it failed.
+
+It's skipped if the `checkFunc` right before it passed.
+
+- Its returned value will be ignored.
+- Any exceptions from it will be caught and used as the new error for failing the test.
+
+Example:
+
+```js
+return asyncVerify(
+  () => {
+    throw new Error("oops");
+  },
+  onFailVerify(err => {
+    console.log("test failed with", err);
+  })
+);
 ```
 
 ## `wrapVerify`
 
 ```js
-wrapVerify(...checkFuncs, done)
+wrapVerify(...checkFuncs, done);
 ```
 
 Returns a function that wraps [`runVerify`](#runverify) and takes a single parameter, which is passed to the first `checkFunc` as result.
@@ -477,7 +504,7 @@ Returns a function that wraps [`runVerify`](#runverify) and takes a single param
 ## `wrapAsyncVerify`
 
 ```js
-wrapAsyncVerify(...checkFuncs)
+wrapAsyncVerify(...checkFuncs);
 ```
 
 The promisified version of [`wrapVerify`](#wrapverify)
