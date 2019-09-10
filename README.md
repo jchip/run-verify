@@ -28,11 +28,12 @@ $ npm install --save-dev run-verify
   - [`asyncVerify`](#asyncverify)
   - [`runFinally`](#runfinally)
   - [`wrapCheck`](#wrapcheck)
-  - [`expectError`](#expecterror)
-  - [`expectErrorHas`](#expecterrorhas)
-  - [`expectErrorToBe`](#expecterrortobe)
-  - [`withCallback`](#withcallback)
-  - [`onFailVerify`](#onfailverify)
+  - [`wrapCheck` decorators and shortcuts](#wrapcheck-decorators-and-shortcuts)
+    - [`expectError`](#expecterror)
+    - [`expectErrorHas`](#expecterrorhas)
+    - [`expectErrorToBe`](#expecterrortobe)
+    - [`withCallback`](#withcallback)
+    - [`onFailVerify`](#onfailverify)
   - [`wrapVerify`](#wrapverify)
   - [`wrapAsyncVerify`](#wrapasyncverify)
 * [License](#license)
@@ -385,7 +386,11 @@ runVerify(
 wrapCheck(checkFunc);
 ```
 
-Wrap a [`checkFunc`](#checkfunc) with the `expectError` and `withCallback` decorators.
+Wrap a [`checkFunc`](#checkfunc) with these decorators:
+
+- [`expectError`](#expecterror), [`expectErrorHas`](#expecterrorhas), [`expectErrorToBe`](#expecterrortobe)
+- [`withCallback`](#withcallback)
+- [`onFailVerify`](#onfailverify)
 
 For example:
 
@@ -393,7 +398,9 @@ For example:
 runVerify(wrapCheck(next => foo("bad input", next)).expectError.withCallback, done);
 ```
 
-## `expectError`
+## `wrapCheck` decorators and shortcuts
+
+### `expectError`
 
 ```js
 expectError(checkFunc);
@@ -413,7 +420,7 @@ This uses [wrapCheck](#wrapcheck) internally so [withCallback](#withcallback) is
 expectError(() => {}).withCallback;
 ```
 
-## `expectErrorHas`
+### `expectErrorHas`
 
 ```js
 expectErrorHas(checkFunc, msg);
@@ -427,7 +434,7 @@ wrapCheck(checkFunc).expectErrorHas(msg);
 
 Decorate a [`checkFunc`](#checkfunc) expecting to throw or return `Error` with message containing `msg`. Its error will be passed to the next [`checkFunc`](#checkfunc).
 
-## `expectErrorToBe`
+### `expectErrorToBe`
 
 ```js
 expectErrorToBe(checkFunc, msg);
@@ -441,7 +448,7 @@ wrapCheck(checkFunc).expectErrorToBe(msg);
 
 Decorate a [`checkFunc`](#checkfunc) expecting to throw or return `Error` with message to be `msg`. Its error will be passed to the next `checkFunc`.
 
-## `withCallback`
+### `withCallback`
 
 ```js
 withCallback(checkFunc);
@@ -461,7 +468,7 @@ This uses [wrapCheck](#wrapcheck) internally so [expectError](#expecterror) is a
 withCallback(() => {}).expectError;
 ```
 
-## `onFailVerify`
+### `onFailVerify`
 
 ```js
 onFailVerify(checkFunc);
@@ -499,7 +506,8 @@ return asyncVerify(
 wrapVerify(...checkFuncs, done);
 ```
 
-Returns a function that wraps [`runVerify`](#runverify) and takes a single parameter, which is passed to the first `checkFunc` as result.
+- Returns a function that wraps [`runVerify`](#runverify).
+- The new function takes a single parameter and pass it to the first `checkFunc`.
 
 ## `wrapAsyncVerify`
 
