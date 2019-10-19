@@ -11,6 +11,7 @@ const {
   onFailVerify,
   withCallback,
   wrapCheck,
+  runTimeout,
   runFinally
 } = require("../..");
 
@@ -338,6 +339,39 @@ describe("runVerify", function() {
           expect(f1).equal(true);
           expect(f2).equal(true);
           expect(err).to.exist;
+          done();
+        } catch (err2) {
+          done(err2);
+        }
+      }
+    );
+  });
+
+  it("should timeout on a stuck test", done => {
+    let f1;
+    let f2;
+    runVerify(
+      runFinally(() => (f1 = true)),
+      () => "hello",
+      runFinally(() => {
+        return Promise.reject(new Error("test"));
+      }),
+      runTimeout(50),
+      r => {
+        expect(r).to.equal("hello");
+        return r;
+      },
+      runFinally(() => {
+        f2 = true;
+      }),
+      runTimeout(100),
+      next => setTimeout(next, 1000),
+      err => {
+        try {
+          expect(f1).equal(true);
+          expect(f2).equal(true);
+          expect(err).to.exist;
+          expect(err.message).equal("runVerify: test timeout after 100ms");
           done();
         } catch (err2) {
           done(err2);
