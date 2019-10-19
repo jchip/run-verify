@@ -12,7 +12,8 @@ const {
   withCallback,
   wrapCheck,
   runTimeout,
-  runFinally
+  runFinally,
+  runDefer
 } = require("../..");
 
 const { IS_FINALLY } = require("../../lib/symbols");
@@ -376,6 +377,347 @@ describe("runVerify", function() {
         } catch (err2) {
           done(err2);
         }
+      }
+    );
+  });
+});
+
+describe("runDefer", function() {
+  it("should allow user to use defer to resolve test", () => {
+    const defer = runDefer();
+    return asyncVerify(
+      defer,
+      runTimeout(20),
+      () => {
+        defer.resolve("hello");
+      },
+      defer.wait(),
+      r => {
+        expect(r).equal("hello");
+      }
+    );
+  });
+
+  it("should allow user to use defer to async resolve test", () => {
+    const defer = runDefer();
+    return asyncVerify(
+      () =>
+        asyncVerify(defer, runTimeout(20), () => {
+          setTimeout(() => defer.resolve("hello"), 10);
+        }),
+      r => {
+        expect(r).equal("hello");
+      }
+    );
+  });
+
+  it("should time out and ignore late resolve", () => {
+    const defer = runDefer();
+    const defer2 = runDefer(10);
+
+    defer2.event.once("resolve", r => {
+      defer.resolve(r);
+    });
+
+    return asyncVerify(
+      defer,
+      expectError(() =>
+        asyncVerify(defer2, () => {
+          setTimeout(() => {
+            defer2.resolve("hello");
+          }, 20);
+        })
+      ),
+      r => {
+        expect(r).to.exist;
+        expect(r).to.be.an("Error");
+        expect(r.message).equal("runDefer timed out after 10ms");
+      },
+      defer.onResolve(r => {
+        expect(r).equal("hello");
+      })
+    );
+  });
+
+  it("should time out on wait and ignore late resolve", () => {
+    const defer = runDefer();
+    const defer2 = runDefer();
+
+    defer2.event.once("resolve", r => {
+      defer.resolve(r);
+    });
+
+    return asyncVerify(
+      defer,
+      expectError(() =>
+        asyncVerify(
+          defer2,
+          () => {
+            setTimeout(() => {
+              defer2.resolve("hello");
+            }, 20);
+          },
+          defer2.wait(10)
+        )
+      ),
+      r => {
+        expect(r).to.exist;
+        expect(r).to.be.an("Error");
+        expect(r.message).equal("defer wait timeout after 10ms");
+      },
+      defer.onResolve(r => {
+        expect(r).equal("hello");
+      })
+    );
+  });
+
+  it("should allow user to use defer to reject test", () => {
+    const defer = runDefer();
+    let reachedBad;
+    return asyncVerify(
+      expectError(() =>
+        asyncVerify(
+          defer,
+          runTimeout(20),
+          () => {
+            defer.reject(new Error("test defer reject"));
+          },
+          () => {
+            reachedBad = new Error("not expecting to reach here");
+          }
+        )
+      ),
+      r => {
+        expect(r).to.exist;
+        expect(r).to.be.an("Error");
+        expect(r.message).equal("test defer reject");
+        if (reachedBad) {
+          throw reachedBad;
+        }
+      }
+    );
+  });
+
+  it("should fail if onResolve throws", () => {
+    const defer = runDefer();
+    return asyncVerify(
+      expectError(() =>
+        asyncVerify(
+          defer,
+          runTimeout(20),
+          () => {
+            defer.resolve("hello");
+          },
+          defer.onResolve(() => {
+            throw new Error("fail resolve");
+          })
+        )
+      ),
+      r => {
+        expect(r).to.exist;
+        expect(r).to.be.an("Error");
+        expect(r.message).equal("fail resolve");
+      }
+    );
+  });
+
+  it("should invoke onReject handlers", () => {
+    const defer = runDefer();
+    return asyncVerify(
+      expectError(() =>
+        asyncVerify(
+          defer,
+          runTimeout(20),
+          () => {
+            defer.reject("hello");
+          },
+          defer.onReject(() => {
+            throw new Error("onReject error");
+          })
+        )
+      ),
+      r => {
+        expect(r).to.exist;
+        expect(r).to.be.an("Error");
+        expect(r.message).equal("onReject error");
+      }
+    );
+  });
+
+  it("should handle multiple runDefer", () => {
+    const defer1 = runDefer();
+    const defer2 = runDefer();
+    return asyncVerify(
+      defer1,
+      defer2,
+      () => {
+        setTimeout(() => {
+          defer1.resolve("done1");
+        }, 10);
+      },
+      () => {
+        setTimeout(() => {
+          defer2.resolve("done2");
+        });
+      }
+    );
+  });
+
+  it("should wait for defer resolve", () => {
+    const defer1 = runDefer();
+    const defer2 = runDefer();
+    return asyncVerify(
+      defer1,
+      defer2,
+      () => {
+        setTimeout(() => {
+          defer1.resolve("done1");
+        }, 10);
+      },
+      () => {
+        setTimeout(() => {
+          defer2.resolve("done2");
+        });
+      },
+      defer1.wait(),
+      r => {
+        expect(r).equal("done1");
+      },
+      defer2.wait(),
+      r => {
+        expect(r).equal("done2");
+      }
+    );
+  });
+
+  it("should wait for defer reject", () => {
+    const defer1 = runDefer();
+    // const defer2 = runDefer();
+    return asyncVerify(
+      expectError(() => {
+        return asyncVerify(
+          defer1,
+          // defer2,
+          () => {
+            setTimeout(() => {
+              defer1.reject(new Error("fail1"));
+            }, 10);
+          },
+          defer1.wait()
+        );
+      }),
+      r => {
+        expect(r).to.be.an("Error");
+        expect(r.message).equal("fail1");
+      }
+    );
+  });
+
+  it("should answer wait immediately for already resolved defer", () => {
+    const defer1 = runDefer();
+    const defer2 = runDefer();
+    return asyncVerify(
+      defer1,
+      defer2,
+      () => {
+        defer1.resolve("done1");
+      },
+      () => {
+        setTimeout(() => {
+          defer2.resolve("done2");
+        }, 50);
+      },
+      defer1.wait(),
+      r => {
+        expect(r).equal("done1");
+      },
+      defer2.wait(),
+      r => {
+        expect(r).equal("done2");
+      },
+      // wait again should work
+      defer1.wait(),
+      r => {
+        expect(r).equal("done1");
+      },
+      // wait again should work
+      defer2.wait(),
+      r => {
+        expect(r).equal("done2");
+      }
+    );
+  });
+
+  it("should answer wait immediately for already rejected defer", () => {
+    const defer1 = runDefer();
+    const defer2 = runDefer();
+    return asyncVerify(
+      defer1,
+      defer2,
+      () => {
+        defer1.reject(new Error("fail1"));
+      },
+      () => {
+        setTimeout(() => {
+          defer2.reject(new Error("fail2"));
+        }, 50);
+      },
+      expectError(defer1.wait()),
+      r => {
+        expect(r).to.be.an("Error");
+        expect(r.message).equal("fail1");
+      },
+      expectError(defer2.wait()),
+      r => {
+        expect(r).to.be.an("Error");
+        expect(r.message).equal("fail2");
+      },
+      // wait again should work
+      expectError(defer1.wait()),
+      r => {
+        expect(r).to.be.an("Error");
+        expect(r.message).equal("fail1");
+      },
+      // wait again should work
+      expectError(defer2.wait()),
+      r => {
+        expect(r).to.be.an("Error");
+        expect(r.message).equal("fail2");
+      }
+    );
+  });
+
+  it("should fail if one of multiple defers failed", () => {
+    const defer1 = runDefer();
+    const defer2 = runDefer();
+    const defer3 = runDefer();
+    return asyncVerify(
+      expectError(() =>
+        asyncVerify(
+          defer1,
+          defer3,
+          () => {
+            setTimeout(() => {
+              defer1.resolve("done1");
+            }, 10);
+          },
+          defer2,
+          () => {
+            setTimeout(() => {
+              defer2.reject(new Error("fail2"));
+            }, 50);
+          },
+          () => {
+            setTimeout(() => {
+              defer3.reject(new Error("fail3"));
+            }, 20);
+          }
+        )
+      ),
+      r => {
+        expect(r).to.exist;
+        expect(r).to.be.an("Error");
+        expect(r.message).equal("fail3");
       }
     );
   });
