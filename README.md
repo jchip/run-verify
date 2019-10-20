@@ -28,6 +28,7 @@ $ npm install --save-dev run-verify
   - [`asyncVerify`](#asyncverify)
   - [`runFinally`](#runfinally)
   - [`runTimeout`](#runtimeout)
+  - [`runDefer`](#rundefer)
   - [`wrapCheck`](#wrapcheck)
   - [`wrapCheck` decorators and shortcuts](#wrapcheck-decorators-and-shortcuts)
     - [`expectError`](#expecterror)
@@ -394,6 +395,8 @@ You can have multiple of these but only the last one has effect.
 example:
 
 ```js
+const { asyncVerify, runTimeout } = require("run-verify");
+
 it("should verify events", () => {
   return asyncVerify(
     runTimeout(50),
@@ -401,8 +404,49 @@ it("should verify events", () => {
     msg => expect(msg).equal("ok")),
     runTimeout(20),
     next => bar.on("event2", msg => next(null, msg)),
-    msg => expect(msg).equal("done")),
-    done
+    msg => expect(msg).equal("done"))
+  )
+})
+```
+
+## `runDefer`
+
+```js
+runDefer([ms]);
+```
+
+Create a defer object for waiting on events.
+
+- `ms` - optional timeout in `ms` milliseconds for this defer.
+
+Returns: the defer object with these methods:
+
+- `resolve(result)` - resolve the defer object: `resolve("OK")`
+- `reject(error)` - reject with error: `reject(new Error("fail"))`
+- `wait([ms])` - Wait for the defer object
+
+NOTES:
+
+> - If you don't use `defer.wait` to wait for the event, then the test will wait for
+>   all registered defer objects to complete.
+> - Any rejected defer object that was not wait for will fail the test immediately.
+
+example:
+
+```js
+const { asyncVerify, runDefer } = require("run-verify");
+
+it("should verify events", () => {
+  const defer = runDefer();
+  const defer2 = runDefer();
+
+  return asyncVerify(
+    next => foo.on("event1", msg => defer.resolve(msg)),
+    defer.wait(50),
+    msg => expect(msg).equal("ok")),
+    next => bar.on("event2", msg => defer2.resolve(msg)),
+    defer2.wait(20),
+    msg => expect(msg).equal("done"))
   )
 })
 ```
