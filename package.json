@@ -1,6 +1,6 @@
 {
   "name": "run-verify",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "Proper test verifications",
   "main": "lib/index.js",
   "scripts": {
