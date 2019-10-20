@@ -27,6 +27,7 @@ $ npm install --save-dev run-verify
   - [`runVerify`](#runverify)
   - [`asyncVerify`](#asyncverify)
   - [`runFinally`](#runfinally)
+  - [`runTimeout`](#runtimeout)
   - [`wrapCheck`](#wrapcheck)
   - [`wrapCheck` decorators and shortcuts](#wrapcheck-decorators-and-shortcuts)
     - [`expectError`](#expecterror)
@@ -378,6 +379,32 @@ runVerify(
   },
   done
 )
+```
+
+## `runTimeout`
+
+```js
+runTimeout(ms);
+```
+
+Set a timeout in `ms` milliseconds for the test.
+
+You can have multiple of these but only the last one has effect.
+
+example:
+
+```js
+it("should verify events", () => {
+  return asyncVerify(
+    runTimeout(50),
+    next => foo.on("event1", msg => next(null, msg)),
+    msg => expect(msg).equal("ok")),
+    runTimeout(20),
+    next => bar.on("event2", msg => next(null, msg)),
+    msg => expect(msg).equal("done")),
+    done
+  )
+})
 ```
 
 ## `wrapCheck`
