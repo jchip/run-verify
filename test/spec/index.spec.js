@@ -398,6 +398,30 @@ describe("runDefer", function() {
     );
   });
 
+  it("should allow user clear defer status", () => {
+    const defer = runDefer();
+    return asyncVerify(
+      defer,
+      () => {
+        defer.resolve("hello");
+      },
+      defer.wait(20),
+      r => {
+        expect(r).equal("hello");
+      },
+      () => {
+        setTimeout(() => {
+          defer.resolve("second");
+        }, 20);
+      },
+      defer.clear(),
+      defer.wait(50),
+      r => {
+        expect(r).equal("second");
+      }
+    );
+  });
+
   it("should allow user to use defer to async resolve test", () => {
     const defer = runDefer();
     return asyncVerify(
