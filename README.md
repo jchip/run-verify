@@ -421,15 +421,15 @@ Create a defer object for waiting on events.
 
 Returns: the defer object with these methods:
 
-- `resolve(result)` - resolve the defer object: `resolve("OK")`
-- `reject(error)` - reject with error: `reject(new Error("fail"))`
-- `wait([ms])` - Wait for the defer object
+- `resolve(result)` - resolve the defer object: `resolve("OK")`.
+- `reject(error)` - reject with error: `reject(new Error("fail"))`.
+- `wait([ms])` - Wait for the defer object.
+- `clear()` - Put resolved defer back into pending status.
 
 NOTES:
 
-> - If you don't use `defer.wait` to wait for the event, then the test will wait for
->   all registered defer objects to complete.
-> - Any rejected defer object that was not wait for will fail the test immediately.
+> - All registered `defer` must resolve for the test to complete.
+> - Any rejection not waited on will fail the test immediately.
 
 example:
 
