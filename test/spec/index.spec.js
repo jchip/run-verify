@@ -637,7 +637,7 @@ describe("runDefer", function() {
     );
   });
 
-  it("should answer wait immediately for already resolved defer", () => {
+  it("should failed on already waited and resolved defer", () => {
     const defer1 = runDefer();
     const defer2 = runDefer();
     return asyncVerify(
@@ -659,20 +659,26 @@ describe("runDefer", function() {
       r => {
         expect(r).equal("done2");
       },
-      // wait again should work
+      expectError(defer1.wait()),
+      r => {
+        expect(r).to.be.an("Error");
+        expect(r.message).contains("defer already waited");
+        defer1.clear();
+        defer1.resolve("done1");
+      },
       defer1.wait(),
       r => {
         expect(r).equal("done1");
       },
-      // wait again should work
-      defer2.wait(),
+      // should allow wait again with true flag
+      defer2.waitAgain(),
       r => {
         expect(r).equal("done2");
       }
     );
   });
 
-  it("should answer wait immediately for already rejected defer", () => {
+  it("should failed on already waited and rejected defer", () => {
     const defer1 = runDefer();
     const defer2 = runDefer();
     return asyncVerify(
@@ -696,17 +702,15 @@ describe("runDefer", function() {
         expect(r).to.be.an("Error");
         expect(r.message).equal("fail2");
       },
-      // wait again should work
       expectError(defer1.wait()),
       r => {
         expect(r).to.be.an("Error");
-        expect(r.message).equal("fail1");
+        expect(r.message).contains("defer already waited");
       },
-      // wait again should work
       expectError(defer2.wait()),
       r => {
         expect(r).to.be.an("Error");
-        expect(r.message).equal("fail2");
+        expect(r.message).contains("defer already waited");
       }
     );
   });
