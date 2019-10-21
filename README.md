@@ -401,12 +401,12 @@ it("should verify events", () => {
   return asyncVerify(
     runTimeout(50),
     next => foo.on("event1", msg => next(null, msg)),
-    msg => expect(msg).equal("ok")),
+    msg => expect(msg).equal("ok"),
     runTimeout(20),
     next => bar.on("event2", msg => next(null, msg)),
-    msg => expect(msg).equal("done"))
-  )
-})
+    msg => expect(msg).equal("done")
+  );
+});
 ```
 
 ## `runDefer`
@@ -441,14 +441,14 @@ it("should verify events", () => {
   const defer2 = runDefer();
 
   return asyncVerify(
-    next => foo.on("event1", msg => defer.resolve(msg)),
+    () => foo.on("event1", msg => defer.resolve(msg)),
     defer.wait(50),
-    msg => expect(msg).equal("ok")),
-    next => bar.on("event2", msg => defer2.resolve(msg)),
+    msg => expect(msg).equal("ok"),
+    () => bar.on("event2", msg => defer2.resolve(msg)),
     defer2.wait(20),
-    msg => expect(msg).equal("done"))
-  )
-})
+    msg => expect(msg).equal("done")
+  );
+});
 ```
 
 ## `wrapCheck`
