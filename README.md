@@ -430,6 +430,7 @@ NOTES:
 
 > - All registered `defer` must resolve for the test to complete.
 > - Any rejection not waited on will fail the test immediately.
+> - You can decorate `wait` with [expectError](#expecterror).
 
 example:
 
