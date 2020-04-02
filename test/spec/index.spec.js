@@ -447,6 +447,7 @@ describe("runDefer", function() {
 
     defer2.event.once("resolve", r => {
       defer.resolve(r);
+      expect(defer2.pending()).equal(false);
     });
 
     return asyncVerify(
@@ -465,6 +466,7 @@ describe("runDefer", function() {
       },
       defer.onResolve(r => {
         expect(r).equal("hello");
+        expect(defer.pending()).equal(false);
       })
     );
   });
