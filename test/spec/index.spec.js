@@ -82,7 +82,10 @@ describe("runVerify", function() {
   it("should fail async event error _not has_ msg", done => {
     runVerify(
       expectErrorHas(next => {
-        runVerify(expectErrorHas(next2 => fooErrorEvent(1, next2), "blahblah"), next);
+        runVerify(
+          expectErrorHas(next2 => fooErrorEvent(1, next2), "blahblah"),
+          next
+        );
       }, "with message has 'blahblah'"),
       done
     );
@@ -91,7 +94,10 @@ describe("runVerify", function() {
   it("should fail async event error _not equal_ msg", done => {
     runVerify(
       expectErrorHas(next => {
-        runVerify(expectErrorToBe(next2 => fooErrorEvent(1, next2), "blahblah"), next);
+        runVerify(
+          expectErrorToBe(next2 => fooErrorEvent(1, next2), "blahblah"),
+          next
+        );
       }, "with message to be 'blahblah'"),
       done
     );
@@ -372,7 +378,7 @@ describe("runVerify", function() {
           expect(f1).equal(true);
           expect(f2).equal(true);
           expect(err).to.exist;
-          expect(err.message).equal("runVerify: test timeout after 100ms");
+          expect(err.message).contains("runVerify: test timeout after 100ms");
           done();
         } catch (err2) {
           done(err2);

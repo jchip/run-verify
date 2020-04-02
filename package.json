@@ -49,5 +49,8 @@
     "functions": 100,
     "lines": 100,
     "cache": true
+  },
+  "prettier": {
+    "printWidth": 100
   }
 }
