@@ -8,22 +8,23 @@ $ npm install --save-dev run-verify
 
 ## Table of Content
 
-- [`expect` Test Verifications](#expect-test-verifications)
-  - [Verifying Events and `callbacks` without Promise](#verifying-events-and-callbacks-without-promise)
-  - [Verifying with Promisification](#verifying-with-promisification)
-  - [Verifying with run-verify](#verifying-with-run-verify)
-    - [Using `runVerify` with `done`](#using-runverify-with-done)
-    - [Using Promisified `asyncVerify`](#using-promisified-asyncverify)
-- [Verifying Expected Failures](#verifying-expected-failures)
-  - [Verifying Failures with callbacks](#verifying-failures-with-callbacks)
-  - [Verifying Failures with Promise](#verifying-failures-with-promise)
-  - [Verifying Failures with `run-verify`](#verifying-failures-with-run-verify)
-
-* [`checkFunc`](#checkfunc)
+- [run-verify](#run-verify)
+  - [Table of Content](#table-of-content)
+  - [`expect` Test Verifications](#expect-test-verifications)
+    - [Verifying Events and `callbacks` without Promise](#verifying-events-and-callbacks-without-promise)
+    - [Verifying with Promisification](#verifying-with-promisification)
+    - [Verifying with run-verify](#verifying-with-run-verify)
+      - [Using `runVerify` with `done`](#using-runverify-with-done)
+      - [Using Promisified `asyncVerify`](#using-promisified-asyncverify)
+  - [Verifying Expected Failures](#verifying-expected-failures)
+    - [Verifying Failures with callbacks](#verifying-failures-with-callbacks)
+    - [Verifying Failures with Promise](#verifying-failures-with-promise)
+    - [Verifying Failures with `run-verify`](#verifying-failures-with-run-verify)
+- [`checkFunc`](#checkfunc)
   - [0 Parameter](#0-parameter)
   - [1 Parameter](#1-parameter)
   - [2 Parameters](#2-parameters)
-* [APIs](#apis)
+- [APIs](#apis)
   - [`runVerify`](#runverify)
   - [`asyncVerify`](#asyncverify)
   - [`runFinally`](#runfinally)
@@ -38,7 +39,40 @@ $ npm install --save-dev run-verify
     - [`onFailVerify`](#onfailverify)
   - [`wrapVerify`](#wrapverify)
   - [`wrapAsyncVerify`](#wrapasyncverify)
-* [License](#license)
+- [License](#license)
+
+- [run-verify](#run-verify)
+  - [Table of Content](#table-of-content)
+  - [`expect` Test Verifications](#expect-test-verifications)
+    - [Verifying Events and `callbacks` without Promise](#verifying-events-and-callbacks-without-promise)
+    - [Verifying with Promisification](#verifying-with-promisification)
+    - [Verifying with run-verify](#verifying-with-run-verify)
+      - [Using `runVerify` with `done`](#using-runverify-with-done)
+      - [Using Promisified `asyncVerify`](#using-promisified-asyncverify)
+  - [Verifying Expected Failures](#verifying-expected-failures)
+    - [Verifying Failures with callbacks](#verifying-failures-with-callbacks)
+    - [Verifying Failures with Promise](#verifying-failures-with-promise)
+    - [Verifying Failures with `run-verify`](#verifying-failures-with-run-verify)
+- [`checkFunc`](#checkfunc)
+  - [0 Parameter](#0-parameter)
+  - [1 Parameter](#1-parameter)
+  - [2 Parameters](#2-parameters)
+- [APIs](#apis)
+  - [`runVerify`](#runverify)
+  - [`asyncVerify`](#asyncverify)
+  - [`runFinally`](#runfinally)
+  - [`runTimeout`](#runtimeout)
+  - [`runDefer`](#rundefer)
+  - [`wrapCheck`](#wrapcheck)
+  - [`wrapCheck` decorators and shortcuts](#wrapcheck-decorators-and-shortcuts)
+    - [`expectError`](#expecterror)
+    - [`expectErrorHas`](#expecterrorhas)
+    - [`expectErrorToBe`](#expecterrortobe)
+    - [`withCallback`](#withcallback)
+    - [`onFailVerify`](#onfailverify)
+  - [`wrapVerify`](#wrapverify)
+  - [`wrapAsyncVerify`](#wrapasyncverify)
+- [License](#license)
 
 ## `expect` Test Verifications
 
@@ -147,7 +181,11 @@ Using `runVerify` if you are using the `done` callback from the test runner:
 const { runVerify } = require("run-verify");
 
 it("should emit an event", done => {
-  runVerify(next => foo.on("event", next), data => expect(data).to.equal("expected value"), done);
+  runVerify(
+    next => foo.on("event", next),
+    data => expect(data).to.equal("expected value"),
+    done
+  );
 });
 ```
 
@@ -252,8 +290,9 @@ Example that returns a Promise to the test runner:
 const { expectError, asyncVerify } = require("run-verify");
 
 it("should invoke callback with error", () => {
-  return asyncVerify(expectError(next => foo("bad input", next)), err =>
-    expect(err.message).includes("bad input passed")
+  return asyncVerify(
+    expectError(next => foo("bad input", next)),
+    err => expect(err.message).includes("bad input passed")
   );
 });
 ```
@@ -264,8 +303,9 @@ Example when everything is promisified:
 const { expectError, asyncVerify } = require("run-verify");
 
 it("should invoke callback with error", () => {
-  return asyncVerify(expectError(() => promisifiedFoo("bad input")), err =>
-    expect(err.message).includes("bad input passed")
+  return asyncVerify(
+    expectError(() => promisifiedFoo("bad input")),
+    err => expect(err.message).includes("bad input passed")
   );
 });
 ```
@@ -289,7 +329,7 @@ Each [`checkFunc`](#checkfunc) can take 0, 1, or 2 parameters.
 ### 1 Parameter
 
 ```js
-(next|result) => {}
+(next | result) => {};
 ```
 
 With only 1 parameter, it gets ambiguous whether it wants a `next` callback or a sync/Promise function taking a result.
@@ -434,6 +474,8 @@ NOTES:
 
 example:
 
+Explicitly wait on the defer objects:
+
 ```js
 const { asyncVerify, runDefer } = require("run-verify");
 
@@ -443,11 +485,33 @@ it("should verify events", () => {
 
   return asyncVerify(
     () => foo.on("event1", msg => defer.resolve(msg)),
+    // explicitly wait for defer before continuing with the test
     defer.wait(50),
     msg => expect(msg).equal("ok"),
     () => bar.on("event2", msg => defer2.resolve(msg)),
+    // explicitly wait for defer before continuing with the test
     defer2.wait(20),
     msg => expect(msg).equal("done")
+  );
+});
+```
+
+Just put defer anywhere as long as they resolve:
+
+```js
+const { asyncVerify, runDefer } = require("run-verify");
+
+it("should verify events", () => {
+  const defer = runDefer();
+  const defer2 = runDefer();
+
+  return asyncVerify(
+    // just telling runVerify that there are two defer events that must
+    // resolve for the test to finish, but you can't verify on their results.
+    defer,
+    defer2,
+    () => foo.on("event1", msg => defer.resolve(msg)),
+    () => bar.on("event2", msg => defer2.resolve(msg))
   );
 });
 ```

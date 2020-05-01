@@ -21,7 +21,7 @@ const { IS_FINALLY } = require("../../lib/symbols");
 const fooEvent = (delay, cb) => setTimeout(() => cb(null, "foo"), delay);
 const fooErrorEvent = (delay, cb) => setTimeout(() => cb(new Error("foo failed")), delay);
 
-describe("runVerify", function() {
+describe("runVerify", function () {
   it("should verify async event returning unexpected result", done => {
     runVerify(
       next => fooEvent(1, next),
@@ -212,7 +212,7 @@ describe("runVerify", function() {
 
   it("should detect callback from check func with single param's name", done => {
     runVerify(
-      function(done2) {
+      function (done2) {
         return fooEvent(1, done2);
       },
       data => {
@@ -388,7 +388,7 @@ describe("runVerify", function() {
   });
 });
 
-describe("runDefer", function() {
+describe("runDefer", function () {
   it("should allow user to use defer to resolve test", () => {
     const defer = runDefer();
     return asyncVerify(
@@ -400,6 +400,58 @@ describe("runDefer", function() {
       defer.wait(),
       r => {
         expect(r).equal("hello");
+      }
+    );
+  });
+
+  it("should allow user to resolve first and then wait", () => {
+    const defer = runDefer(500);
+    defer.resolve();
+    return asyncVerify(defer.wait());
+  });
+
+  it("should allow user to reject first and then wait", () => {
+    const defer = runDefer(500);
+    defer.reject(new Error("test"));
+    return asyncVerify(expectError(defer.wait()), err => {
+      expect(err.message).to.equal("test");
+    });
+  });
+
+  it("should allow user to put defer any where for the test", () => {
+    const defer = runDefer();
+    const defer2 = runDefer();
+
+    return asyncVerify(
+      // just telling runVerify that there are two defer events that must
+      // resolve for the test to finish.
+      defer,
+      defer2,
+      () => setTimeout(() => defer.resolve(1), 50),
+      () => setTimeout(() => defer2.resolve(2), 50)
+    );
+  });
+
+  it("should fail if a free defer was not resolved", () => {
+    const defer = runDefer();
+    const defer2 = runDefer();
+
+    const failed = asyncVerify(
+      // just telling runVerify that there are two defer events that must
+      // resolve for the test to finish.
+      defer,
+      defer2,
+      runTimeout(250),
+      () => setTimeout(() => defer.resolve(1), 50)
+      // defer2 is never resolved, so there should be a timeout
+    );
+
+    return asyncVerify(
+      expectError(() => failed),
+      err => {
+        expect(err.message).includes(
+          `runVerify: test timeout after 250ms while waiting for run check function`
+        );
       }
     );
   });
@@ -462,7 +514,7 @@ describe("runDefer", function() {
       r => {
         expect(r).to.exist;
         expect(r).to.be.an("Error");
-        expect(r.message).equal("runDefer timed out after 10ms");
+        expect(r.message).equal("defer timeout after 10ms - from runVerify");
       },
       defer.onResolve(r => {
         expect(r).equal("hello");
@@ -495,7 +547,7 @@ describe("runDefer", function() {
       r => {
         expect(r).to.exist;
         expect(r).to.be.an("Error");
-        expect(r.message).equal("defer wait timeout after 10ms");
+        expect(r.message).equal("defer timeout after 10ms - from defer.wait");
       },
       defer.onResolve(r => {
         expect(r).equal("hello");
@@ -759,7 +811,7 @@ describe("runDefer", function() {
   });
 });
 
-describe("runFinally", function() {
+describe("runFinally", function () {
   it("should make a callback that's always run", () => {
     const x = runFinally(() => {});
     expect(x[IS_FINALLY]).equal(true);
@@ -800,14 +852,14 @@ describe("runFinally", function() {
   });
 });
 
-describe("wrapVerify", function() {
+describe("wrapVerify", function () {
   it("should make a callback to run verify", done => {
     const wrapped = wrapVerify(r => expect(r).to.equal("hello"), done);
     wrapped("hello");
   });
 });
 
-describe("asyncVerify", function() {
+describe("asyncVerify", function () {
   it("should return a promise to run verify", () => {
     return asyncVerify(
       next => fooEvent(1, next),
@@ -920,7 +972,7 @@ describe("asyncVerify", function() {
   });
 });
 
-describe("wrapAsyncVerify", function() {
+describe("wrapAsyncVerify", function () {
   it("should make a callback to run asyncVerify", () => {
     const wrapped = wrapAsyncVerify(r => expect(r).to.equal("hello"));
     return wrapped("hello");
