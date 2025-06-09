@@ -21,7 +21,7 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jchip/run-verify.git"
+    "url": "git+https://github.com/jchip/run-verify.git"
   },
   "files": [
     "lib"
